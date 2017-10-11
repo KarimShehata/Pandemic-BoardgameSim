@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
+using Action = PandemicConsoleApp.Actions.Action;
 
 namespace PandemicConsoleApp
 {
@@ -140,18 +141,26 @@ namespace PandemicConsoleApp
 
         private void DoActions(Player player)
         {
-            var availableActions = GetAvailableActions(player);
-
             //foreach (var action in availableActions)
             //{
             //    Console.WriteLine(action.ActionType.ToString());
             //}
 
-            //for (var i = 0; i < _actionCount; i++)
-            //{
-            //    var availableActions = GetAvailableActions(player);
-            //    Console.WriteLine("==> " + availableActions.Count);
-            //}
+            for (var i = 0; i < _actionCount; i++)
+            {
+                var availableActions = GetAvailableActions(player);
+                Console.WriteLine($"Player#{player.Id} has {availableActions.Count} actions Available:");
+
+                PrintAvailableActions(availableActions);
+            }
+        }
+
+        private void PrintAvailableActions(List<Action> availableActions)
+        {
+            foreach (var action in availableActions)
+            {
+                action.PrintAction();
+            }
         }
 
         private void DrawPlayerCards(Player player)

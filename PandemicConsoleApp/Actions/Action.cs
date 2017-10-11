@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 
-namespace PandemicConsoleApp
+namespace PandemicConsoleApp.Actions
 {
-    internal class Action : IAction
+    internal abstract class Action : IAction
     {
         #region Public Fields
 
@@ -10,5 +10,7 @@ namespace PandemicConsoleApp
         public List<int> Cost = new List<int>();
 
         #endregion Public Fields
+
+        public abstract void PrintAction();
     }
 }

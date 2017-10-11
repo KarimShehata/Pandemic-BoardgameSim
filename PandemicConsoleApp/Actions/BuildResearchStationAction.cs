@@ -1,3 +1,5 @@
+using PandemicConsoleApp.Actions;
+
 namespace PandemicConsoleApp
 {
     internal class BuildResearchStationAction : Action

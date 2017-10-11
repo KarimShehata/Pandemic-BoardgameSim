@@ -17,7 +17,7 @@ namespace PandemicConsoleApp
             for (var i = 0; i < numGames; i++)
             {
                 var pandemic = new Pandemic(Difficulty.Standard, 2);
-                pandemic.PrintBoardState();
+                //pandemic.PrintBoardState();
 
                 if (i < c) continue;
 
