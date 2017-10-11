@@ -506,8 +506,8 @@ namespace PandemicConsoleApp
         private void TakeTurn(int playerNumber)
         {
             DoActions(Players[playerNumber]);
-            //DrawPlayerCards(Players[playerNumber]);
-            //InfectCities();
+            DrawPlayerCards(Players[playerNumber]);
+            InfectCities();
         }
 
         #endregion Private Methods

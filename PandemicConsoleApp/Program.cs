@@ -10,25 +10,20 @@ namespace PandemicConsoleApp
 
         private static void Main()
         {
-            var numGames = 100000000.0;
+            var numGames = 1000;
+            var interval = (int)(numGames * 0.1);
 
             var c = 0;
             for (var i = 0; i < numGames; i++)
             {
                 var pandemic = new Pandemic(Difficulty.Standard, 2);
-                //pandemic.PrintBoardState();
-
-                //Console.WriteLine($"Game {i} created.");
+                pandemic.PrintBoardState();
 
                 if (i < c) continue;
 
-                c += 100000;
+                c += interval;
                 Console.WriteLine("Game: " + i);
             }
-
-            Console.WriteLine(winCounnt/numGames);
-
-            Console.WriteLine("No Winner");
 
             Console.ReadLine();
         }
