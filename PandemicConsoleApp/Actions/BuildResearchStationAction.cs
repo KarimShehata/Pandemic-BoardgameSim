@@ -1,4 +1,5 @@
-using PandemicConsoleApp.Actions;
+using System;
+using Action = PandemicConsoleApp.Actions.Action;
 
 namespace PandemicConsoleApp
 {
@@ -13,5 +14,10 @@ namespace PandemicConsoleApp
         }
 
         #endregion Public Constructors
+
+        public override void PrintAction(int i)
+        {
+            Console.WriteLine($"{i}) Build Research Station.");
+        }
     }
 }

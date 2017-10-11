@@ -23,7 +23,7 @@ namespace PandemicConsoleApp
         #region Private Fields
 
         private readonly int[] _startingHands = { 4, 3, 2 };
-        private int _actionCount = 4;
+        private int _actionCount = 1;
         private int[] _cubeReserve = { 24, 24, 24, 24 };
         private int[] _cures = { 0, 0, 0, 0 };
         // 0-not found -- 1-cure found -- 2-eradecated
@@ -152,15 +152,12 @@ namespace PandemicConsoleApp
                 Console.WriteLine($"Player#{player.Id} has {availableActions.Count} actions Available:");
 
                 PrintAvailableActions(availableActions);
-            }
-        }
 
-        private void PrintAvailableActions(List<Action> availableActions)
-        {
-            foreach (var action in availableActions)
-            {
-                action.PrintAction();
+                var choice = GetPlayerChoice(availableActions);
+
+                PerformAction(availableActions[choice]);
             }
+
         }
 
         private void DrawPlayerCards(Player player)
@@ -187,7 +184,7 @@ namespace PandemicConsoleApp
             // Drive / Ferry Actions
             availableactions.AddRange(GetAvailableDriveFerryActions(currentActivePlayer.Location));
             // Direct Flight Actions
-            availableactions.AddRange(GetAvailableDirectFlightActions(currentActivePlayer.Hand));
+            availableactions.AddRange(GetAvailableDirectFlightActions(currentActivePlayer.Hand, currentActivePlayer.Location));
             // Charter Flight Actions
             availableactions.AddRange(GetAvailableCharterFlightActions(currentActivePlayer.Location, currentActivePlayer.Hand));
             // Shuttle Flight Actions
@@ -232,13 +229,13 @@ namespace PandemicConsoleApp
             return list;
         }
 
-        private List<DirectFlightAction> GetAvailableDirectFlightActions(List<int> playerHand)
+        private List<DirectFlightAction> GetAvailableDirectFlightActions(List<int> playerHand, int playerLocation)
         {
             var list = new List<DirectFlightAction>();
 
             foreach (var card in playerHand)
             {
-                if (card < 48) //if city card
+                if (card < 48 && card != playerLocation) //if city card and not current city
                     list.Add(new DirectFlightAction(card));
             }
 
@@ -287,15 +284,15 @@ namespace PandemicConsoleApp
         {
             if (!_researchStationLoactions.Contains(location)) return null;
 
-            var cardsByColor = new [] { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+            var cardsByColor = new[] { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
             var cureColor = -1;
 
             foreach (var i in hand)  // group cards by cardsOfSameColor
             {
-                if(i>47) continue; // event card
+                if (i > 47) continue; // event card
 
                 var x = (i / 48.0) * 4;
-                
+
                 cardsByColor[(int)x].Add(i);
             }
 
@@ -314,6 +311,33 @@ namespace PandemicConsoleApp
             Program.winCounnt++;
 
             return new DiscoverCureAction(cardsByColor[cureColor], cureColor); //TODO let player choose which cards to commit
+        }
+
+        private int GetPlayerChoice(List<Action> availableActions)
+        {
+            int choice;
+            bool isValidInput;
+
+            do
+            {
+                isValidInput = false;
+
+                Console.Write("Choose action: ");
+                var input = Console.ReadLine();
+
+                if (int.TryParse(input, out choice))
+                {
+                    isValidInput = choice < availableActions.Count && choice >= 0;
+                }
+
+                if (!isValidInput)
+                {
+                    Console.WriteLine("Input invalid");
+                }
+
+            } while (!isValidInput);
+
+            return choice;
         }
 
         private string GetPlayerHandString(Player player)
@@ -439,6 +463,11 @@ namespace PandemicConsoleApp
             _shuffeledRoles = new Stack<Role>(_roles.OrderBy(y => rnd.Next()));
         }
 
+        private void PerformAction(Action availableAction)
+        {
+            throw new NotImplementedException();
+        }
+
         private Role PickRole()
         {
             return _shuffeledRoles.Pop();
@@ -464,6 +493,13 @@ namespace PandemicConsoleApp
             PlayerDrawPile = new Stack<int>(completePile);
         }
 
+        private void PrintAvailableActions(List<Action> availableActions)
+        {
+            for (var i = 0; i < availableActions.Count; i++)
+            {
+                availableActions[i].PrintAction(i);
+            }
+        }
         private void PrintCubeState()
         {
             var totalReserveCubes = _cubeReserve[0] + _cubeReserve[1] + _cubeReserve[2] + _cubeReserve[3];
@@ -517,8 +553,8 @@ namespace PandemicConsoleApp
         private void TakeTurn(int playerNumber)
         {
             DoActions(Players[playerNumber]);
-            DrawPlayerCards(Players[playerNumber]);
-            InfectCities();
+            //DrawPlayerCards(Players[playerNumber]);
+            //InfectCities();
         }
 
         #endregion Private Methods

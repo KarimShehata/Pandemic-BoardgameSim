@@ -11,6 +11,6 @@ namespace PandemicConsoleApp.Actions
 
         #endregion Public Fields
 
-        public abstract void PrintAction();
+        public abstract void PrintAction(int i);
     }
 }

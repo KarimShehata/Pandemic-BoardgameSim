@@ -1,3 +1,5 @@
+using System;
+
 namespace PandemicConsoleApp
 {
     internal class CharterFlightAction : MovementAction
@@ -12,5 +14,11 @@ namespace PandemicConsoleApp
         }
 
         #endregion Public Constructors
+
+        public override void PrintAction(int i)
+        {
+            Console.WriteLine($"{i}) Charter Flight to {Destiantion}");
+
+        }
     }
 }

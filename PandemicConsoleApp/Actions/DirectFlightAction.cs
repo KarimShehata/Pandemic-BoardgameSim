@@ -1,3 +1,5 @@
+using System;
+
 namespace PandemicConsoleApp
 {
     internal class DirectFlightAction : MovementAction
@@ -12,5 +14,10 @@ namespace PandemicConsoleApp
         }
 
         #endregion Public Constructors
+
+        public override void PrintAction(int i)
+        {
+            Console.WriteLine($"{i}) Direct Flight to {Destiantion}");
+        }
     }
 }

@@ -1,4 +1,5 @@
-using PandemicConsoleApp.Actions;
+using System;
+using Action = PandemicConsoleApp.Actions.Action;
 
 namespace PandemicConsoleApp
 {
@@ -21,5 +22,10 @@ namespace PandemicConsoleApp
         public Player GivingPlayer { get; set; }
 
         #endregion Public Constructors
+
+        public override void PrintAction(int i)
+        {
+            Console.WriteLine($"{i}) Share Knowledge");
+        }
     }
 }

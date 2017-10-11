@@ -1,3 +1,5 @@
+using System;
+
 namespace PandemicConsoleApp
 {
     internal class DriveFerryAction : MovementAction
@@ -11,5 +13,10 @@ namespace PandemicConsoleApp
         }
 
         #endregion Public Constructors
+
+        public override void PrintAction(int i)
+        {
+            Console.WriteLine($"{i}) Drive/Ferry to {Destiantion}");
+        }
     }
 }

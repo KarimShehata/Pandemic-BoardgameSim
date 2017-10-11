@@ -10,7 +10,7 @@ namespace PandemicConsoleApp
 
         private static void Main()
         {
-            var numGames = 1000;
+            var numGames = 10000;
             var interval = (int)(numGames * 0.1);
 
             var c = 0;

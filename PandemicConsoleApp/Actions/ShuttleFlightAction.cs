@@ -1,3 +1,5 @@
+using System;
+
 namespace PandemicConsoleApp
 {
     internal class ShuttleFlightAction : MovementAction
@@ -13,5 +15,9 @@ namespace PandemicConsoleApp
 
         #endregion Public Constructors
 
+        public override void PrintAction(int i)
+        {
+            Console.WriteLine($"{i}) Shuttle Flight to {Destiantion}");
+        }
     }
 }

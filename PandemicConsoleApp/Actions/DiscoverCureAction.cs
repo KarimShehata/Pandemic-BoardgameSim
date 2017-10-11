@@ -1,5 +1,6 @@
+using System;
 using System.Collections.Generic;
-using PandemicConsoleApp.Actions;
+using Action = PandemicConsoleApp.Actions.Action;
 
 namespace PandemicConsoleApp
 {
@@ -15,5 +16,10 @@ namespace PandemicConsoleApp
         public int CureColor { get; set; }
 
         public List<int> Cards { get; set; }
+
+        public override void PrintAction(int i)
+        {
+            Console.WriteLine($"{i}) Discover Cure");
+        }
     }
 }
