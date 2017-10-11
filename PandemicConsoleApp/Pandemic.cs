@@ -85,7 +85,7 @@ namespace PandemicConsoleApp
                 throw new NotImplementedException(); //Todo Outbreak triggered
 
             if (Map.Cities[city].Cubes[cubeColor] > 3)
-                throw new NotSupportedException(); //more than 3 cubes of a single color on one city space
+                throw new NotSupportedException(); //more than 3 cubes of a single cardsOfSameColor on one city space
         }
 
         public void PrintBoardState()
@@ -131,9 +131,8 @@ namespace PandemicConsoleApp
         private void BeginPlay()
         {
             var roundCounter = 0;
-            while (!_gameEnded)
+            //while (!_gameEnded)
             {
-                Console.WriteLine($"Turn {roundCounter + 1}:");
                 TakeTurn(roundCounter % _playerCount);
             }
 
@@ -141,11 +140,18 @@ namespace PandemicConsoleApp
 
         private void DoActions(Player player)
         {
-            for (var i = 0; i < _actionCount; i++)
-            {
-                var availableActions = GetAvailableActions(player);
-                Console.WriteLine("==> " + availableActions.Count);
-            }
+            var availableActions = GetAvailableActions(player);
+
+            //foreach (var action in availableActions)
+            //{
+            //    Console.WriteLine(action.ActionType.ToString());
+            //}
+
+            //for (var i = 0; i < _actionCount; i++)
+            //{
+            //    var availableActions = GetAvailableActions(player);
+            //    Console.WriteLine("==> " + availableActions.Count);
+            //}
         }
 
         private void DrawPlayerCards(Player player)
@@ -165,9 +171,9 @@ namespace PandemicConsoleApp
             return hand;
         }
 
-        private List<IAction> GetAvailableActions(Player currentActivePlayer)
+        private List<Action> GetAvailableActions(Player currentActivePlayer)
         {
-            var availableactions = new List<IAction>();
+            var availableactions = new List<Action>();
 
             // Drive / Ferry Actions
             availableactions.AddRange(GetAvailableDriveFerryActions(currentActivePlayer.Location));
@@ -189,9 +195,12 @@ namespace PandemicConsoleApp
                 availableactions.Add(treatDiseaseAction);
 
             // Share Knowledge Action
-            var shareKnowledgeAction = GetShareKnowledgeActions(currentActivePlayer);
-            if (shareKnowledgeAction.Count > 0)
-                availableactions.AddRange(shareKnowledgeAction);
+            availableactions.AddRange(GetShareKnowledgeActions(currentActivePlayer));
+
+            // Discover Cure Action
+            var discoverCureAction = GetDiscoverCureAction(currentActivePlayer.Location, currentActivePlayer.Hand);
+            if (discoverCureAction != null)
+                availableactions.Add(discoverCureAction);
 
             return availableactions;
         }
@@ -258,7 +267,42 @@ namespace PandemicConsoleApp
 
         private BuildResearchStationAction GetBuildResearchStationAction(int playerLocation, List<int> playerHand)
         {
-            return playerHand.Contains(playerLocation) ? new BuildResearchStationAction(playerLocation) : null;
+            var hasResearchStation = _researchStationLoactions.Contains(playerLocation);
+
+            return playerHand.Contains(playerLocation) && !hasResearchStation ? new BuildResearchStationAction(playerLocation) : null;
+        }
+
+        private DiscoverCureAction GetDiscoverCureAction(int location, List<int> hand)
+        {
+            if (!_researchStationLoactions.Contains(location)) return null;
+
+            var cardsByColor = new [] { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+            var cureColor = -1;
+
+            foreach (var i in hand)  // group cards by cardsOfSameColor
+            {
+                if(i>47) continue; // event card
+
+                var x = (i / 48.0) * 4;
+                
+                cardsByColor[(int)x].Add(i);
+            }
+
+            for (var i = 0; i < cardsByColor.Length; i++) // check if has enough cards
+            {
+                if (cardsByColor[i].Count >= 5)
+                {
+                    cureColor = i;
+                }
+            }
+
+            if (cureColor < 0) return null; // not enough cards of single cardsOfSameColor
+
+            if (_cures[cureColor] > 0) return null; // cure already found
+
+            Program.winCounnt++;
+
+            return new DiscoverCureAction(cardsByColor[cureColor], cureColor); //TODO let player choose which cards to commit
         }
 
         private string GetPlayerHandString(Player player)
@@ -274,26 +318,30 @@ namespace PandemicConsoleApp
 
         private List<ShareKnowledgeAction> GetShareKnowledgeActions(Player player)
         {
-            //Todo make two way
-
             var list = new List<ShareKnowledgeAction>();
 
-            if (!player.Hand.Contains(player.Location)) return list;
-
-            var playersAtSameLocation = new List<Player>();
+            Player givingPlayer = null;
+            var receivingPlayers = new List<Player>();
 
             foreach (var p in Players)
             {
-                if (p.Location == player.Location)
-                    playersAtSameLocation.Add(p);
+                if (p.Location != player.Location) continue;
+
+                if (p.Hand.Contains(player.Location))
+                {
+                    givingPlayer = p;
+                }
+                else
+                {
+                    receivingPlayers.Add(p);
+                }
             }
 
-            if (playersAtSameLocation.Count < 2) return list;
+            if (givingPlayer == null) return list; //No player at current location with that location card
 
-            foreach (var p in playersAtSameLocation)
+            foreach (var p in receivingPlayers)
             {
-                if (p != player)
-                    list.Add(new ShareKnowledgeAction(player.Location, p));
+                list.Add(new ShareKnowledgeAction(givingPlayer, p, player.Location));
             }
 
             return list;
@@ -303,6 +351,7 @@ namespace PandemicConsoleApp
         {
             return Map.IsCityInfected(playerLocation) ? new TreatDiseaseAction() : null;
         }
+
         private void Infect()
         {
             for (var i = 3; i > 0; i--)
@@ -457,8 +506,8 @@ namespace PandemicConsoleApp
         private void TakeTurn(int playerNumber)
         {
             DoActions(Players[playerNumber]);
-            DrawPlayerCards(Players[playerNumber]);
-            InfectCities();
+            //DrawPlayerCards(Players[playerNumber]);
+            //InfectCities();
         }
 
         #endregion Private Methods

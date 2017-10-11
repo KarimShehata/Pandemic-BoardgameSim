@@ -6,6 +6,7 @@ namespace PandemicConsoleApp
 
         public BuildResearchStationAction(int playerLocation)
         {
+            ActionType = ActionType.BuildResearchStation;
             Cost.Add(playerLocation);
         }
 

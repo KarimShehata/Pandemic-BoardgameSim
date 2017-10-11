@@ -8,8 +8,7 @@ namespace PandemicConsoleApp
     {
         public static int[] Shuffle(int[] deck)
         {
-            var rnd = new Random();
-            return deck.OrderBy(y => rnd.Next()).ToArray();
+            return deck.OrderBy(y => Program.random.Next()).ToArray();
         }
 
         public static IEnumerable<IEnumerable<T>> Split<T>(this T[] array, int parts)

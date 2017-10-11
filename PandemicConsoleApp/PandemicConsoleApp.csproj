@@ -50,6 +50,7 @@
     <Compile Include="Actions\DirectFlightAction.cs" />
     <Compile Include="Actions\DriveFerryAction.cs" />
     <Compile Include="Actions\IAction.cs" />
+    <Compile Include="Actions\DiscoverCureAction.cs" />
     <Compile Include="Map.cs" />
     <Compile Include="Actions\MovementAction.cs" />
     <Compile Include="Node.cs" />

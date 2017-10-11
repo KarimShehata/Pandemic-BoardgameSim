@@ -4,10 +4,19 @@ namespace PandemicConsoleApp
     {
         #region Public Constructors
 
-        public ShareKnowledgeAction(int playerLocation, Player player)
+        public ShareKnowledgeAction(Player giving, Player receiving, int card)
         {
-
+            ActionType = ActionType.ShareKnowledge;
+            GivingPlayer = giving;
+            ReceivingPlayer = receiving;
+            LocationCard = card;
         }
+
+        public int LocationCard { get; set; }
+
+        public Player ReceivingPlayer { get; set; }
+
+        public Player GivingPlayer { get; set; }
 
         #endregion Public Constructors
     }

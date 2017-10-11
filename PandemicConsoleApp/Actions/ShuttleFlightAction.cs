@@ -7,7 +7,7 @@ namespace PandemicConsoleApp
 
         public ShuttleFlightAction(int destinationCityId)
         {
-            ActionType = ActionType.DirectFlight;
+            ActionType = ActionType.ShuttleFlight;
             Destiantion = destinationCityId;
         }
 
