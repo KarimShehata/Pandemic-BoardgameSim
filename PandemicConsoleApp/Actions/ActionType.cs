@@ -9,6 +9,7 @@ namespace PandemicConsoleApp
         BuildResearchStation,
         TreatDisease,
         ShareKnowledge,
-        DiscoverCure
+        DiscoverCure,
+        Pass
     }
 }

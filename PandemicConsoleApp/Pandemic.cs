@@ -202,6 +202,8 @@ namespace PandemicConsoleApp
             if (discoverCureAction != null)
                 availableactions.Add(discoverCureAction);
 
+            availableactions.Add(new PassAction());
+
             return availableactions;
         }
 
