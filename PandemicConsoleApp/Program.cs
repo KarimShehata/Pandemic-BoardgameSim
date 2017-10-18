@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using PandemicConsoleApp.Properties;
 
 namespace PandemicConsoleApp
 {
@@ -7,24 +9,43 @@ namespace PandemicConsoleApp
         public static Random random = new Random();
 
         public static int winCounnt;
+        private static int _numGames = 1;
 
         private static void Main()
         {
-            var numGames = 10000;
-            var interval = (int)(numGames * 0.1);
+            //_numGames = Settings.Default.NumGames;
+            //var threads = 8;
+
+            //for (var i = 0; i < threads; i++)
+            //{
+            //    new Thread(StartGame).Start();
+            //}
+
+            StartGame();
+        }
+
+        private static void StartGame()
+        {
+            var interval = (int)(_numGames * 0.1);
 
             var c = 0;
-            for (var i = 0; i < numGames; i++)
+            for (var i = 0; i < _numGames; i++)
             {
-                var pandemic = new Pandemic(Difficulty.Standard, 2);
+                if (i == c)
+                {
+                    c += interval;
+                    Console.WriteLine("Game: " + (i + 1));
+                }
+
+                var pandemic = new Pandemic(Difficulty.Standard, 2, true);
                 //pandemic.PrintBoardState();
 
-                if (i < c) continue;
-
-                c += interval;
-                Console.WriteLine("Game: " + i);
             }
 
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(">>>>> GAME OVER <<<<<");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(winCounnt);
             Console.ReadLine();
         }
     }

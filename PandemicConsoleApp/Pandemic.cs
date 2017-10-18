@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO.MemoryMappedFiles;
 using System.Linq;
+using System.Threading;
+using PandemicConsoleApp.Actions;
 using Action = PandemicConsoleApp.Actions.Action;
 
 namespace PandemicConsoleApp
@@ -22,31 +23,45 @@ namespace PandemicConsoleApp
 
         #region Private Fields
 
-        private readonly int[] _startingHands = { 4, 3, 2 };
-        private int _actionCount = 1;
-        private int[] _cubeReserve = { 24, 24, 24, 24 };
-        private int[] _cures = { 0, 0, 0, 0 };
+        private const int ActionCount = 4;
+        private const int FullCubeCount = 24;
+        private const int HandLimit = 7;
+        private readonly int[] _cubeReserve = { FullCubeCount, FullCubeCount, FullCubeCount, FullCubeCount };
+        private readonly int[] _cures = { 0, 0, 0, 0 };
         // 0-not found -- 1-cure found -- 2-eradecated
-        private Difficulty _difficulty;
+        private readonly Difficulty _difficulty;
+        private readonly int[] _startingHands = { 4, 3, 2 };
 
+        private List<int> _citiesWithOutbreaksThisTurn = new List<int>();
         private bool _gameEnded = false;
+
         private int _infectionRateIdx = 0;
+
         private int[] _infectionRates = { 2, 2, 2, 3, 3, 4, 4 };
+
         private int _outbreakCounter = 0;
+
+        private bool _output = false;
+
         private int _playerCount;
+
         private List<int> _researchStationLoactions = new List<int>();
+
         private int _researchStationReserve = 6;
+
         private List<Role> _roles = new List<Role>();
+
         private Stack<Role> _shuffeledRoles;
 
         #endregion Private Fields
 
         #region Public Constructors
 
-        public Pandemic(Difficulty difficulty, int playerCount)
+        public Pandemic(Difficulty difficulty, int playerCount, bool output = false)
         {
             _difficulty = difficulty;
             _playerCount = playerCount;
+            _output = output;
 
             Map = new Map();
 
@@ -56,7 +71,7 @@ namespace PandemicConsoleApp
 
             AddResearchStationToCity(11);  //Atlanta
 
-            Infect();
+            InfectFirst9Cities();
 
             InitPlayerDeck();
 
@@ -69,24 +84,43 @@ namespace PandemicConsoleApp
 
         #endregion Public Constructors
 
+        #region Private Enums
+
+        private enum DiseaseColor
+        {
+            Blue,
+            Black,
+            Red,
+            Yellow
+        }
+
+        #endregion Private Enums
+
         #region Public Methods
 
-        public void AddCubesToCity(int cubeCount, int city)
+        public void AddCubesToCity(int cubeCount, int city, int diseaseColor)
         {
-            var cubeColor = city / 12;
+            do
+            {
+                _cubeReserve[diseaseColor]--;
 
-            _cubeReserve[cubeColor] -= cubeCount;
+                if (_cubeReserve[diseaseColor] < 0)
+                {
+                    _gameEnded = true;
+                    return;
+                }
 
-            if (_cubeReserve[cubeColor] < 0)
-                throw new NotSupportedException(); //Todo Game Lost: ran out of cubes
+                if (Map.Cities[city].Cubes[diseaseColor] < 3)
+                    Map.Cities[city].Cubes[diseaseColor]++;
+                else
+                {
+                    if (!_citiesWithOutbreaksThisTurn.Contains(city))
+                        TriggerOutbreak(city, diseaseColor);
+                    cubeCount = 0;
+                }
 
-            if (Map.Cities[city].Cubes[cubeColor] < 3)
-                Map.Cities[city].Cubes[cubeColor] += cubeCount;
-            else
-                throw new NotImplementedException(); //Todo Outbreak triggered
-
-            if (Map.Cities[city].Cubes[cubeColor] > 3)
-                throw new NotSupportedException(); //more than 3 cubes of a single cardsOfSameColor on one city space
+                cubeCount--;
+            } while (cubeCount > 0);
         }
 
         public void PrintBoardState()
@@ -101,11 +135,21 @@ namespace PandemicConsoleApp
             PrintCureState();
             Console.WriteLine("======== Cube State ========");
             PrintCubeState();
-            Console.WriteLine("======== Infection Discard Pile ========");
+            Console.WriteLine("======== Infection DiscardPlayerCard Pile ========");
             PrintInfectionDiscardPile();
-            Console.WriteLine("======== Player Discard Pile ========");
+            Console.WriteLine("======== Player DiscardPlayerCard Pile ========");
             PrintPlayerDiscardPile();
             Console.WriteLine("======== ======== ========");
+        }
+
+        public void RemoveCubeFromCity(int playerLocation, int diseaseColor)
+        {
+            _cubeReserve[diseaseColor]++;
+
+            Map.Cities[playerLocation].Cubes[diseaseColor]--;
+
+            if (_cubeReserve[diseaseColor] == FullCubeCount && _cures[diseaseColor] == 1)
+                _cures[diseaseColor]++;
         }
 
         #endregion Public Methods
@@ -132,37 +176,91 @@ namespace PandemicConsoleApp
         private void BeginPlay()
         {
             var roundCounter = 0;
-            //while (!_gameEnded)
+            while (!_gameEnded)
             {
-                TakeTurn(roundCounter % _playerCount);
-            }
+                if (_output)
+                    Console.WriteLine($"Turn #{roundCounter + 1}");
 
+                TakeTurn(roundCounter % _playerCount);
+                roundCounter++;
+            }
+        }
+
+        private void CheckAndDiscardToHandLimit(Player player)
+        {
+            while (player.Hand.Count > HandLimit)
+            {
+                player.Hand.RemoveAt(Program.random.Next(player.Hand.Count)); //todo add palyer choice logic
+            }
+        }
+
+        private void CheckIfWon()
+        {
+            if (_cures.All(x => x > 0))
+            {
+                Program.winCounnt++;
+                _gameEnded = true;
+                Console.WriteLine("All 4 Cures discovered!");
+            }
         }
 
         private void DoActions(Player player)
         {
-            //foreach (var action in availableActions)
-            //{
-            //    Console.WriteLine(action.ActionType.ToString());
-            //}
-
-            for (var i = 0; i < _actionCount; i++)
+            for (var i = 0; i < ActionCount; i++)
             {
-                var availableActions = GetAvailableActions(player);
-                Console.WriteLine($"Player#{player.Id} has {availableActions.Count} actions Available:");
+                var availableActions = ActionService.GetAvailableActions(player, Players, Map, _researchStationLoactions, _cures);
 
-                PrintAvailableActions(availableActions);
+                if (_output)
+                {
+                    Console.WriteLine($"P#{player.Id} {player.Role} @ {Map.CityNames[player.Location]}- Action {i + 1}/{ActionCount}");
 
-                var choice = GetPlayerChoice(availableActions);
+                    Console.Write("Hand: ");
+                    foreach (var card in player.Hand)
+                    {
+                        if (card < 48)
+                            Console.Write(Map.CityNames[card] + ", ");
+                        else
+                            Console.Write(card + ", ");
+                    }
+                    Console.WriteLine();
 
-                PerformAction(availableActions[choice]);
+                    PrintAvailableActions(availableActions);
+                }
+
+                var choice = Program.random.Next(availableActions.Count); //GetPlayerChoice(availableActions); Todo
+
+                if (_output)
+                {
+                    Console.WriteLine($"Action {choice} was chosen randomly");
+                    Console.WriteLine("Press Spacebar to continue");
+                    do
+                    {
+                    } while (Console.ReadKey(true).Key != ConsoleKey.Spacebar);
+                }
+
+                PerformAction(player, availableActions[choice]);
             }
 
         }
 
         private void DrawPlayerCards(Player player)
         {
-            throw new NotImplementedException();
+            if (PlayerDrawPile.Count < 2)
+            {
+                _gameEnded = true;  //Todo Game lost ran out of player cards
+                return;
+            }
+
+            for (var i = 0; i < 2; i++)
+            {
+                var card = PlayerDrawPile.Pop();
+
+                if (card != 53)
+                    player.Hand.Add(card);
+                else
+                    TriggerEpidemic();
+            }
+            CheckAndDiscardToHandLimit(player);
         }
 
         private List<int> DrawStartingHand()
@@ -175,142 +273,6 @@ namespace PandemicConsoleApp
             }
 
             return hand;
-        }
-
-        private List<Action> GetAvailableActions(Player currentActivePlayer)
-        {
-            var availableactions = new List<Action>();
-
-            // Drive / Ferry Actions
-            availableactions.AddRange(GetAvailableDriveFerryActions(currentActivePlayer.Location));
-            // Direct Flight Actions
-            availableactions.AddRange(GetAvailableDirectFlightActions(currentActivePlayer.Hand, currentActivePlayer.Location));
-            // Charter Flight Actions
-            availableactions.AddRange(GetAvailableCharterFlightActions(currentActivePlayer.Location, currentActivePlayer.Hand));
-            // Shuttle Flight Actions
-            availableactions.AddRange(GetAvailableShuttleFlightActions(currentActivePlayer.Location));
-
-            // Build Research Station Action
-            var buildResearchStationAction = GetBuildResearchStationAction(currentActivePlayer.Location, currentActivePlayer.Hand);
-            if (buildResearchStationAction != null)
-                availableactions.Add(buildResearchStationAction);
-
-            // Treat Disease Action
-            var treatDiseaseAction = GetTreatDiseaseAction(currentActivePlayer.Location);
-            if (treatDiseaseAction != null)
-                availableactions.Add(treatDiseaseAction);
-
-            // Share Knowledge Action
-            availableactions.AddRange(GetShareKnowledgeActions(currentActivePlayer));
-
-            // Discover Cure Action
-            var discoverCureAction = GetDiscoverCureAction(currentActivePlayer.Location, currentActivePlayer.Hand);
-            if (discoverCureAction != null)
-                availableactions.Add(discoverCureAction);
-
-            availableactions.Add(new PassAction());
-
-            return availableactions;
-        }
-
-        private List<CharterFlightAction> GetAvailableCharterFlightActions(int playerLocation, List<int> playerHand)
-        {
-            var list = new List<CharterFlightAction>();
-
-            if (!playerHand.Contains(playerLocation)) return list;
-
-            //Charter Flight possible
-            for (var i = 0; i < 48; i++) // All Cities
-            {
-                if (i != playerLocation) // All other Cities are valid destinations
-                    list.Add(new CharterFlightAction(playerLocation, i));
-            }
-
-            return list;
-        }
-
-        private List<DirectFlightAction> GetAvailableDirectFlightActions(List<int> playerHand, int playerLocation)
-        {
-            var list = new List<DirectFlightAction>();
-
-            foreach (var card in playerHand)
-            {
-                if (card < 48 && card != playerLocation) //if city card and not current city
-                    list.Add(new DirectFlightAction(card));
-            }
-
-            return list;
-        }
-
-        private List<DriveFerryAction> GetAvailableDriveFerryActions(int cityId)
-        {
-            var list = new List<DriveFerryAction>();
-
-            var connectedCities = Map.Cities[cityId].Neighbours;
-
-            foreach (var connectedCity in connectedCities)
-            {
-                list.Add(new DriveFerryAction(connectedCity.Id));
-            }
-
-            return list;
-        }
-
-        private List<ShuttleFlightAction> GetAvailableShuttleFlightActions(int playerLocation)
-        {
-            var list = new List<ShuttleFlightAction>();
-
-            if (_researchStationLoactions.Count <= 1) return list;
-
-            if (!_researchStationLoactions.Contains(playerLocation)) return list;
-
-            foreach (var researchStationLoaction in _researchStationLoactions)
-            {
-                if (researchStationLoaction != playerLocation)
-                    list.Add(new ShuttleFlightAction(researchStationLoaction));
-            }
-
-            return list;
-        }
-
-        private BuildResearchStationAction GetBuildResearchStationAction(int playerLocation, List<int> playerHand)
-        {
-            var hasResearchStation = _researchStationLoactions.Contains(playerLocation);
-
-            return playerHand.Contains(playerLocation) && !hasResearchStation ? new BuildResearchStationAction(playerLocation) : null;
-        }
-
-        private DiscoverCureAction GetDiscoverCureAction(int location, List<int> hand)
-        {
-            if (!_researchStationLoactions.Contains(location)) return null;
-
-            var cardsByColor = new[] { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
-            var cureColor = -1;
-
-            foreach (var i in hand)  // group cards by cardsOfSameColor
-            {
-                if (i > 47) continue; // event card
-
-                var x = (i / 48.0) * 4;
-
-                cardsByColor[(int)x].Add(i);
-            }
-
-            for (var i = 0; i < cardsByColor.Length; i++) // check if has enough cards
-            {
-                if (cardsByColor[i].Count >= 5)
-                {
-                    cureColor = i;
-                }
-            }
-
-            if (cureColor < 0) return null; // not enough cards of single cardsOfSameColor
-
-            if (_cures[cureColor] > 0) return null; // cure already found
-
-            Program.winCounnt++;
-
-            return new DiscoverCureAction(cardsByColor[cureColor], cureColor); //TODO let player choose which cards to commit
         }
 
         private int GetPlayerChoice(List<Action> availableActions)
@@ -351,60 +313,37 @@ namespace PandemicConsoleApp
             return returnString.Remove(returnString.Length - 2);
         }
 
-        private List<ShareKnowledgeAction> GetShareKnowledgeActions(Player player)
+        private void Infect(int numCubes = 1)
         {
-            var list = new List<ShareKnowledgeAction>();
+            if (InfectionDrawPile.Count == 0) throw new Exception(); // somehow the infection drawpile was emptied
 
-            Player givingPlayer = null;
-            var receivingPlayers = new List<Player>();
+            var city = InfectionDrawPile.Pop();
+            InfectionDiscardPile.Push(city);
+            var diseasColor = city / 12;
 
-            foreach (var p in Players)
-            {
-                if (p.Location != player.Location) continue;
+            if (_output)
+                Console.WriteLine($"{numCubes} {(DiseaseColor)diseasColor} added to {Map.CityNames[city]}");
 
-                if (p.Hand.Contains(player.Location))
-                {
-                    givingPlayer = p;
-                }
-                else
-                {
-                    receivingPlayers.Add(p);
-                }
-            }
-
-            if (givingPlayer == null) return list; //No player at current location with that location card
-
-            foreach (var p in receivingPlayers)
-            {
-                list.Add(new ShareKnowledgeAction(givingPlayer, p, player.Location));
-            }
-
-            return list;
-        }
-
-        private TreatDiseaseAction GetTreatDiseaseAction(int playerLocation)
-        {
-            return Map.IsCityInfected(playerLocation) ? new TreatDiseaseAction() : null;
-        }
-
-        private void Infect()
-        {
-            for (var i = 3; i > 0; i--)
-            {
-                for (var j = 0; j < 3; j++)
-                {
-                    var city = InfectionDrawPile.Pop();
-
-                    AddCubesToCity(i, city);
-
-                    InfectionDiscardPile.Push(city);
-                }
-            }
+            AddCubesToCity(numCubes, city, diseasColor);
         }
 
         private void InfectCities()
         {
-            throw new NotImplementedException();
+            for (var i = 0; i < _infectionRates[_infectionRateIdx]; i++)
+            {
+                Infect();
+            }
+        }
+
+        private void InfectFirst9Cities()
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                for (var j = 0; j < 3; j++)
+                {
+                    Infect(3 - i);
+                }
+            }
         }
 
         private void InitInfectionDeck()
@@ -439,8 +378,9 @@ namespace PandemicConsoleApp
         {
             for (var i = 0; i < _playerCount; i++)
             {
-                var player = new Player(i)
+                var player = new Player
                 {
+                    Id = i,
                     Location = 11,
                     Role = PickRole(),
                     Hand = DrawStartingHand()
@@ -463,9 +403,94 @@ namespace PandemicConsoleApp
             _shuffeledRoles = new Stack<Role>(_roles.OrderBy(y => rnd.Next()));
         }
 
-        private void PerformAction(Action availableAction)
+        private void PerformAction(Player player, Action action)
         {
-            throw new NotImplementedException();
+
+            switch (action.ActionType)
+            {
+                case ActionType.DriveFerry:
+                    var driveFerryAction = action as DriveFerryAction;
+                    player.Location = driveFerryAction.Destiantion;
+                    break;
+                case ActionType.DirectFlight:
+                    var directFlightAction = action as DirectFlightAction;
+                    DiscardPlayerCard(player, directFlightAction.Destiantion);
+                    player.Location = directFlightAction.Destiantion;
+                    break;
+                case ActionType.CharterFlight:
+                    var charterFlightAction = action as CharterFlightAction;
+                    DiscardPlayerCard(player, charterFlightAction.Cost);
+                    player.Location = charterFlightAction.Destiantion;
+                    break;
+                case ActionType.ShuttleFlight:
+                    var shuttleFlightAction = action as ShuttleFlightAction;
+                    player.Location = shuttleFlightAction.Destiantion;
+                    break;
+                case ActionType.BuildResearchStation:
+                    var buildResearchStationAction = action as BuildResearchStationAction;
+                    if (buildResearchStationAction.Cost >= 0)   // Action can be free because of Operations Expert
+                    {
+                        DiscardPlayerCard(player, buildResearchStationAction.Cost);
+                    }
+                    _researchStationLoactions.Add(buildResearchStationAction.Cost);
+                    break;
+                case ActionType.TreatDisease:
+                    var treatDiseaseAction = action as TreatDiseaseAction;
+                    TreatDisease(player, treatDiseaseAction.DiseaseColor);
+                    break;
+                case ActionType.ShareKnowledge:
+                    var shareKnowledgeAction = action as ShareKnowledgeAction;
+                    shareKnowledgeAction.GivingPlayer.Hand.Remove(shareKnowledgeAction.LocationCard);
+                    shareKnowledgeAction.ReceivingPlayer.Hand.Add(shareKnowledgeAction.LocationCard);
+                    CheckAndDiscardToHandLimit(shareKnowledgeAction.ReceivingPlayer);
+                    break;
+                case ActionType.DiscoverCure:
+                    var discoverCureAction = action as DiscoverCureAction;
+                    foreach (var card in discoverCureAction.Cards)
+                    {
+                        discoverCureAction.Player.Hand.Remove(card);
+                    }
+                    _cures[discoverCureAction.CureColor]++;
+                    CheckIfWon();
+                    if (_cubeReserve[discoverCureAction.CureColor] == FullCubeCount)
+                        _cures[discoverCureAction.CureColor]++;
+                    break;
+                case ActionType.Pass:
+                    break;
+                case ActionType.OperationsExpertSpecialFlightAction:
+                    var operationsExpertSpecialFlightAction = action as OperationsExpertSpecialFlightAction;
+                    DiscardPlayerCard(player, operationsExpertSpecialFlightAction.Cost);
+                    player.Location = operationsExpertSpecialFlightAction.Destiantion;
+                    break;
+                case ActionType.DispatherSpecialFlightAction:
+                    var dispatherSpecialFlightAction = action as DispatherSpecialFlightAction;
+                    dispatherSpecialFlightAction.MovingPlayer.Location =
+                        dispatherSpecialFlightAction.DestinationPlayer.Location;
+
+                    CheckAndTriggerMedicSpecialAction(dispatherSpecialFlightAction.MovingPlayer, dispatherSpecialFlightAction); // Trigger Medic Special Ability if Medic was moved by Dispatcher
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            CheckAndTriggerMedicSpecialAction(player, action);
+        }
+
+        private void CheckAndTriggerMedicSpecialAction(Player player, Action action)
+        {
+            if (player.Role != Role.Medic || !(action is MovementAction)) return;
+
+            for (var i = 0; i < _cures.Length; i++)   // Medic Special Ability
+            {
+                if (_cures[i] > 0)
+                    TreatDisease(player, i);
+            }
+        }
+
+        private void DiscardPlayerCard(Player player, int card)
+        {
+            player.Hand.Remove(card);
+            PlayerDiscardPile.Push(card);
         }
 
         private Role PickRole()
@@ -500,6 +525,7 @@ namespace PandemicConsoleApp
                 availableActions[i].PrintAction(i);
             }
         }
+
         private void PrintCubeState()
         {
             var totalReserveCubes = _cubeReserve[0] + _cubeReserve[1] + _cubeReserve[2] + _cubeReserve[3];
@@ -552,9 +578,81 @@ namespace PandemicConsoleApp
 
         private void TakeTurn(int playerNumber)
         {
+            Console.WriteLine("===== Action Phase =====");
             DoActions(Players[playerNumber]);
-            //DrawPlayerCards(Players[playerNumber]);
-            //InfectCities();
+            Console.WriteLine("===== Draw Phase =====");
+            DrawPlayerCards(Players[playerNumber]);
+            Console.WriteLine("===== Infection Phase =====");
+            InfectCities();
+
+            _citiesWithOutbreaksThisTurn.Clear();
+        }
+
+        private void TreatDisease(Player player, int diseaseColor)
+        {
+            var isMedicOrCureFound = _cures[diseaseColor] > 0 || player.Role == Role.Medic;
+
+            do
+            {
+                RemoveCubeFromCity(player.Location, diseaseColor);
+            } while (Map.Cities[player.Location].Cubes[diseaseColor] > 0 && isMedicOrCureFound); // Medic Special Ability
+        }
+
+        private void TriggerEpidemic()
+        {
+            // 1. Increase
+            _infectionRateIdx++;
+
+            // 2. Infect
+            var list = InfectionDrawPile.ToList();
+
+            var infectedCity = list[list.Count - 1];
+            list.RemoveAt(list.Count - 1);
+            InfectionDiscardPile.Push(infectedCity);
+
+            InfectionDrawPile = new Stack<int>(list);
+
+            if (_output)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Epidemic @ {Map.CityNames[infectedCity]}");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
+            if (_cures[infectedCity / 12] < 2)
+            {
+                AddCubesToCity(3, infectedCity, infectedCity / 12);
+            }
+
+            _citiesWithOutbreaksThisTurn.Clear();  // remove epidemic city from list
+
+            // 3. Intensify
+            var shuffledInfectionDiscardPile = Utils.Shuffle(InfectionDiscardPile);
+            foreach (var card in shuffledInfectionDiscardPile)
+            {
+                InfectionDrawPile.Push(card);
+            }
+
+
+        }
+
+        private void TriggerOutbreak(int city, int diseaseColor)
+        {
+            _citiesWithOutbreaksThisTurn.Add(city);
+
+            foreach (var neighbour in Map.Cities[city].Neighbours)
+            {
+                AddCubesToCity(1, neighbour.Id, diseaseColor);
+            }
+
+            if (_output)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Outbreak of {(DiseaseColor)diseaseColor} @ {Map.CityNames[city]}");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
+            //todo handle outbreak loops
         }
 
         #endregion Private Methods

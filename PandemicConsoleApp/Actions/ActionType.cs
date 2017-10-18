@@ -10,6 +10,8 @@ namespace PandemicConsoleApp
         TreatDisease,
         ShareKnowledge,
         DiscoverCure,
+        OperationsExpertSpecialFlightAction,
+        DispatherSpecialFlightAction,
         Pass
     }
 }

@@ -12,11 +12,13 @@ namespace PandemicConsoleApp
             Destiantion = connectedCityId;
         }
 
+        public bool Passive { get; set; }
+
         #endregion Public Constructors
 
         public override void PrintAction(int i)
         {
-            Console.WriteLine($"{i}) Drive/Ferry to {Destiantion}");
+            Console.WriteLine($"{i}) Drive/Ferry to {Map.CityNames[Destiantion]}");
         }
     }
 }

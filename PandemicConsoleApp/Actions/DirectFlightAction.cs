@@ -10,14 +10,13 @@ namespace PandemicConsoleApp
         {
             ActionType = ActionType.DirectFlight;
             Destiantion = destinationCityId;
-            Cost.Add(destinationCityId);
         }
 
         #endregion Public Constructors
 
         public override void PrintAction(int i)
         {
-            Console.WriteLine($"{i}) Direct Flight to {Destiantion}");
+            Console.WriteLine($"{i}) Direct Flight to {Map.CityNames[Destiantion]}");
         }
     }
 }

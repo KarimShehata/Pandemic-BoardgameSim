@@ -17,7 +17,7 @@ namespace PandemicConsoleApp
 
         public override void PrintAction(int i)
         {
-            Console.WriteLine($"{i}) Shuttle Flight to {Destiantion}");
+            Console.WriteLine($"{i}) Shuttle Flight to {Map.CityNames[Destiantion]}");
         }
     }
 }

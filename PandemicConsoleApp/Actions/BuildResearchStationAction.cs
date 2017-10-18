@@ -7,11 +7,14 @@ namespace PandemicConsoleApp
     {
         #region Public Constructors
 
-        public BuildResearchStationAction(int playerLocation)
+        public BuildResearchStationAction(int location, bool isOperationsExpert = false)
         {
             ActionType = ActionType.BuildResearchStation;
-            Cost.Add(playerLocation);
+
+            Cost = isOperationsExpert ? -1 : location;
         }
+
+        public int Cost { get; set; }
 
         #endregion Public Constructors
 

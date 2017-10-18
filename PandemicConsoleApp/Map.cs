@@ -5,12 +5,91 @@ namespace PandemicConsoleApp
 {
     internal class Map
     {
+        #region Public Fields
+
+        public static readonly string[] CityNames =
+        {
+            "San Francisco",
+            "Chicago",
+            "Montreal",
+            "New York",
+            "London",
+            "Essen",
+            "St. Petersburg",
+            "Paris",
+            "Milan",
+            "Madrid",
+            "Washington",
+            "Atlanta",
+            "Moscow",
+            "Istanbul",
+            "Algiers",
+            "Cairo",
+            "Baghdad",
+            "Teharan",
+            "Delhi",
+            "Karachi",
+            "Riyadh",
+            "Mumbai",
+            "Chennai",
+            "Kolkata",
+            "Bangkok",
+            "Hong Kong",
+            "Jakarta",
+            "Ho Chi Minh City",
+            "Sydney",
+            "Manila",
+            "Taipei",
+            "Shanghai",
+            "Beijing",
+            "Seoul",
+            "Tokyo",
+            "Osaka",
+            "Los Angeles",
+            "Mexico City",
+            "Miami",
+            "Bogota",
+            "Lima",
+            "Santiago",
+            "Buenos Aires",
+            "Sao Paulo",
+            "Lagos",
+            "Khartoum",
+            "Kinshasa",
+            "Johannesburg"
+        };
+
         public List<City> Cities = new List<City>();
+
+        #endregion Public Fields
+
+        #region Public Constructors
 
         public Map()
         {
             InitBoard();
         }
+
+        #endregion Public Constructors
+
+        #region Public Methods
+
+        public bool IsCityInfected(int cityId)
+        {
+            return Cities[cityId].IsInfected;
+        }
+
+        public void PrintState()
+        {
+            foreach (var node in Cities)
+            {
+                node.PrintState();
+            }
+        }
+
+        #endregion Public Methods
+
+        #region Private Methods
 
         private void InitBoard()
         {
@@ -21,10 +100,10 @@ namespace PandemicConsoleApp
 
             Cities[0].AddNeighbours(Cities, new List<int> { 29, 34, 36, 1 });
             Cities[1].AddNeighbours(Cities, new List<int> { 0, 36, 37, 11, 2 });
-            Cities[2].AddNeighbours(Cities, new List<int> { 1, 10,3 });
+            Cities[2].AddNeighbours(Cities, new List<int> { 1, 10, 3 });
             Cities[3].AddNeighbours(Cities, new List<int> { 2, 10, 9, 4 });
             Cities[4].AddNeighbours(Cities, new List<int> { 3, 9, 7, 5 });
-            Cities[5].AddNeighbours(Cities, new List<int> { 4, 7, 8,6 });
+            Cities[5].AddNeighbours(Cities, new List<int> { 4, 7, 8, 6 });
             Cities[6].AddNeighbours(Cities, new List<int> { 5, 13, 12 });
             Cities[7].AddNeighbours(Cities, new List<int> { 4, 5, 8, 9, 14 });
             Cities[8].AddNeighbours(Cities, new List<int> { 5, 7, 13 });
@@ -83,17 +162,6 @@ namespace PandemicConsoleApp
             }
         }
 
-        public void PrintState()
-        {
-            foreach (var node in Cities)
-            {
-                node.PrintState();
-            }
-        }
-
-        public bool IsCityInfected(int cityId)
-        {
-           return Cities[cityId].IsInfected;
-        }
+        #endregion Private Methods
     }
 }

@@ -10,14 +10,16 @@ namespace PandemicConsoleApp
         {
             ActionType = ActionType.CharterFlight;
             Destiantion = destinationCityId;
-            Cost.Add(currentCityCard);
+            Cost = currentCityCard;
         }
+
+        public int Cost { get; set; }
 
         #endregion Public Constructors
 
         public override void PrintAction(int i)
         {
-            Console.WriteLine($"{i}) Charter Flight to {Destiantion}");
+            Console.WriteLine($"{i}) Charter Flight to {Map.CityNames[Destiantion]}");
 
         }
     }

@@ -6,9 +6,9 @@ namespace PandemicConsoleApp
 {
     static class Utils
     {
-        public static int[] Shuffle(int[] deck)
+        public static IOrderedEnumerable<T> Shuffle<T>(IEnumerable<T> deck)
         {
-            return deck.OrderBy(y => Program.random.Next()).ToArray();
+            return deck.OrderBy(y => Program.random.Next());
         }
 
         public static IEnumerable<IEnumerable<T>> Split<T>(this T[] array, int parts)

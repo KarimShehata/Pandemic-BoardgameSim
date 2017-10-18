@@ -7,7 +7,6 @@ namespace PandemicConsoleApp.Actions
         #region Public Fields
 
         public ActionType ActionType { get; set; }
-        public List<int> Cost = new List<int>();
 
         #endregion Public Fields
 
