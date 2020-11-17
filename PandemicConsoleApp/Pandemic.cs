@@ -9,7 +9,6 @@ namespace PandemicConsoleApp
 {
     internal class Pandemic
     {
-
         #region Public Fields
 
         public Stack<int> InfectionDiscardPile = new Stack<int>();
@@ -22,36 +21,22 @@ namespace PandemicConsoleApp
         #endregion Public Fields
 
         #region Private Fields
-
-        private const int ActionCount = 4;
-        private const int FullCubeCount = 24;
-        private const int HandLimit = 7;
-        private readonly int[] _cubeReserve = { FullCubeCount, FullCubeCount, FullCubeCount, FullCubeCount };
-        private readonly int[] _cures = { 0, 0, 0, 0 };
-        // 0-not found -- 1-cure found -- 2-eradecated
+        private readonly int[] _cubeReserve = {BaseConstants.FullCubeCount, BaseConstants.FullCubeCount, BaseConstants.FullCubeCount, BaseConstants.FullCubeCount };
+        private readonly CureState[] _cures = { 0, 0, 0, 0 };
         private readonly Difficulty _difficulty;
-        private readonly int[] _startingHands = { 4, 3, 2 };
-
         private List<int> _citiesWithOutbreaksThisTurn = new List<int>();
-        private bool _gameEnded = false;
-
-        private int _infectionRateIdx = 0;
-
-        private int[] _infectionRates = { 2, 2, 2, 3, 3, 4, 4 };
-
-        private int _outbreakCounter = 0;
-
-        private bool _output = false;
-
+        private bool _gameEnded;
+        private int _infectionRateIdx;
+        private int _outbreakCounter;
+        private bool _output;
         private int _playerCount;
 
         private List<int> _researchStationLoactions = new List<int>();
 
-        private int _researchStationReserve = 6;
-
         private List<Role> _roles = new List<Role>();
 
         private Stack<Role> _shuffeledRoles;
+        private int _researchStationReserve = BaseConstants.ResearchStationReserve;
 
         #endregion Private Fields
 
@@ -83,18 +68,6 @@ namespace PandemicConsoleApp
         }
 
         #endregion Public Constructors
-
-        #region Private Enums
-
-        private enum DiseaseColor
-        {
-            Blue,
-            Black,
-            Red,
-            Yellow
-        }
-
-        #endregion Private Enums
 
         #region Public Methods
 
@@ -148,7 +121,7 @@ namespace PandemicConsoleApp
 
             Map.Cities[playerLocation].Cubes[diseaseColor]--;
 
-            if (_cubeReserve[diseaseColor] == FullCubeCount && _cures[diseaseColor] == 1)
+            if (_cubeReserve[diseaseColor] == BaseConstants.FullCubeCount && _cures[diseaseColor] == CureState.Found)
                 _cures[diseaseColor]++;
         }
 
@@ -188,7 +161,7 @@ namespace PandemicConsoleApp
 
         private void CheckAndDiscardToHandLimit(Player player)
         {
-            while (player.Hand.Count > HandLimit)
+            while (player.Hand.Count > BaseConstants.HandLimit)
             {
                 player.Hand.RemoveAt(Program.random.Next(player.Hand.Count)); //todo add palyer choice logic
             }
@@ -206,13 +179,13 @@ namespace PandemicConsoleApp
 
         private void DoActions(Player player)
         {
-            for (var i = 0; i < ActionCount; i++)
+            for (var i = 0; i < BaseConstants.ActionCount; i++)
             {
                 var availableActions = ActionService.GetAvailableActions(player, Players, Map, _researchStationLoactions, _cures);
 
                 if (_output)
                 {
-                    Console.WriteLine($"P#{player.Id} {player.Role} @ {Map.CityNames[player.Location]}- Action {i + 1}/{ActionCount}");
+                    Console.WriteLine($"P#{player.Id} {player.Role} @ {Map.CityNames[player.Location]}- Action {i + 1}/{BaseConstants.ActionCount}");
 
                     Console.Write("Hand: ");
                     foreach (var card in player.Hand)
@@ -267,7 +240,7 @@ namespace PandemicConsoleApp
         {
             var hand = new List<int>();
 
-            for (var j = 0; j < _startingHands[_playerCount - 2]; j++)
+            for (var j = 0; j < BaseConstants.StartingHands[_playerCount - 2]; j++)
             {
                 hand.Add(PlayerDrawPile.Pop());
             }
@@ -315,21 +288,21 @@ namespace PandemicConsoleApp
 
         private void Infect(int numCubes = 1)
         {
-            if (InfectionDrawPile.Count == 0) throw new Exception(); // somehow the infection drawpile was emptied
+            if (InfectionDrawPile.Count == 0) throw new Exception(); // somehow the infection draw pile was emptied
 
             var city = InfectionDrawPile.Pop();
             InfectionDiscardPile.Push(city);
-            var diseasColor = city / 12;
+            var diseaseColor = city / 12;
 
             if (_output)
-                Console.WriteLine($"{numCubes} {(DiseaseColor)diseasColor} added to {Map.CityNames[city]}");
+                Console.WriteLine($"{numCubes} {(DiseaseColor)diseaseColor} added to {Map.CityNames[city]}");
 
-            AddCubesToCity(numCubes, city, diseasColor);
+            AddCubesToCity(numCubes, city, diseaseColor);
         }
 
         private void InfectCities()
         {
-            for (var i = 0; i < _infectionRates[_infectionRateIdx]; i++)
+            for (var i = 0; i < BaseConstants.InfectionRates[_infectionRateIdx]; i++)
             {
                 Infect();
             }
@@ -452,7 +425,7 @@ namespace PandemicConsoleApp
                     }
                     _cures[discoverCureAction.CureColor]++;
                     CheckIfWon();
-                    if (_cubeReserve[discoverCureAction.CureColor] == FullCubeCount)
+                    if (_cubeReserve[discoverCureAction.CureColor] == BaseConstants.FullCubeCount)
                         _cures[discoverCureAction.CureColor]++;
                     break;
                 case ActionType.Pass:
@@ -619,7 +592,7 @@ namespace PandemicConsoleApp
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
-            if (_cures[infectedCity / 12] < 2)
+            if (_cures[infectedCity / 12] != CureState.Eradicated)
             {
                 AddCubesToCity(3, infectedCity, infectedCity / 12);
             }

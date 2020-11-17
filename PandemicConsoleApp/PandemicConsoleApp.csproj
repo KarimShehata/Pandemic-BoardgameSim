@@ -47,7 +47,8 @@
     <Compile Include="Actions\ActionType.cs" />
     <Compile Include="Actions\BuildResearchStationAction.cs" />
     <Compile Include="Actions\CharterFlightAction.cs" />
-    <Compile Include="Difficulty.cs" />
+    <Compile Include="BaseConstants.cs" />
+    <Compile Include="Enums.cs" />
     <Compile Include="Actions\DirectFlightAction.cs" />
     <Compile Include="Actions\DriveFerryAction.cs" />
     <Compile Include="Actions\IAction.cs" />

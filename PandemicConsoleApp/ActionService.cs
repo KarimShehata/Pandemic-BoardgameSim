@@ -10,7 +10,7 @@ namespace PandemicConsoleApp
 
         #region Public Methods
 
-        public static List<Action> GetAvailableActions(Player currentActivePlayer, List<Player> players, Map map, List<int> researchStationLocations, int[] cures)
+        public static List<Action> GetAvailableActions(Player currentActivePlayer, List<Player> players, Map map, List<int> researchStationLocations, CureState[] cures)
         {
             var availableactions = new List<Action> { new PassAction() };
 
@@ -214,7 +214,7 @@ namespace PandemicConsoleApp
             return combinations;
         }
 
-        private static List<DiscoverCureAction> GetDiscoverCureAction(Player player, List<int> reseachStationLocations, int[] cures)
+        private static List<DiscoverCureAction> GetDiscoverCureAction(Player player, List<int> reseachStationLocations, CureState[] cures)
         {
             var list = new List<DiscoverCureAction>();
 
